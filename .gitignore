@@ -1,0 +1,10 @@
+
+# Ignore virtual environment directories
+/venv/
+/env/
+/virtualenv/
+workspace/
+
+__pycache__
+
+*.png
