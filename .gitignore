@@ -3,7 +3,7 @@
 /venv/
 /env/
 /virtualenv/
-workspace/
+/workspace/
 
 __pycache__
 
