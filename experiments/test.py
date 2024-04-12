@@ -13,7 +13,7 @@ from model.visbert import VisualBERT
 
 tokenizer = 'google-bert/bert-base-uncased'
 model = "microsoft/swinv2-base-patch4-window12-192-22k"
-dataset = DatasetBuilder(model,tokenizer,'test.jsonl')
+dataset = DatasetBuilder(model,tokenizer,'train.jsonl')
 
 
 visual_model = VisualBERT()

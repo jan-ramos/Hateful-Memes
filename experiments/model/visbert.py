@@ -48,6 +48,10 @@ class VisualBERT(torch.nn.Module):
         logits = self.cls(pooled_output)
         reshaped_logits = logits.view(-1, self.num_labels)
 
+        #print('Tensor Value: ',tensor['label'])
+        #print('Tensor Shape: ',tensor['label'].shape)
+        #print('Tensor View: ',tensor['label'].view(-1))
+
         loss = self.loss_fct(reshaped_logits, tensor['label'].view(-1))
       
         return loss, reshaped_logits 
