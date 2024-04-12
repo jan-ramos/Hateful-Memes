@@ -39,13 +39,11 @@ class DatasetBuilder():
         
         image = self.image_processor(value['img'], return_tensors="pt")
             
-            
-        outputs = self.viz_model(**image)
-
-        visual_embeds = outputs.last_hidden_state
-
-       # except:
-       #     visual_embeds = np.zeros(shape=(197, 768), dtype=float)
+        try:
+            outputs = self.viz_model(**image)
+            visual_embeds = outputs.last_hidden_state
+        except:
+            visual_embeds = np.zeros(shape=(197, 768), dtype=float)
 
             
         visual_attention_mask = torch.ones(visual_embeds.shape[:-1], dtype=torch.int64)
