@@ -4,6 +4,11 @@
 /env/
 /virtualenv/
 /workspace/
+/projectenv/
+r2.txt
+AdVisualBERT.py
+
+
 
 __pycache__
 
