@@ -28,25 +28,40 @@ class VisualBERT(torch.nn.Module):
         normedWeights = [1 - (x / sum(nSamples)) for x in nSamples]
         self.loss_fct = CrossEntropyLoss(weight=torch.FloatTensor(normedWeights))
         
-    def forward(self, tensor):
+    #def forward(self, tensor):
+    def forward(self, input_ids, attention_mask, token_type_ids, visual_embeds, visual_attention_mask, visual_token_type_ids, labels):
+        input_ids = input_ids.squeeze(1)
+        print(input_ids.size())
+        print(token_type_ids.size())
         """
         In the forward function we accept a Tensor of input data and we must return
         a Tensor of output data. We can use Modules defined in the constructor as
         well as arbitrary operators on Tensors.
         """
-        print(tensor['visual_embeds'].shape)
-        visual_embeds_cls = self.embed_cls(tensor['visual_embeds'])
-        outputs = self.visualbert(
-                tensor['input_ids'],
-                attention_mask=tensor['attention_mask'],
-                token_type_ids=tensor['token_type_ids'],
+        #print(tensor['visual_embeds'].shape)
+        visual_embeds_cls = self.embed_cls(visual_embeds)
+        visual_embeds_cls = visual_embeds_cls.squeeze(1)
+        #outputs = self.visualbert(
+        #        input_ids=tensor['input_ids'],
+        #        attention_mask=tensor['attention_mask'],
+        #        token_type_ids=tensor['token_type_ids'],
+        #        visual_embeds=visual_embeds_cls,
+        #        visual_attention_mask=tensor['visual_attention_mask'],
+        #        visual_token_type_ids=tensor['visual_token_type_ids'],
+        #        output_hidden_states=True,
+        #        return_dict = True
+        #    )
+        print(visual_embeds_cls.size())
+        outputs = self.visualbert(input_ids=input_ids,
+                attention_mask=attention_mask,
+                token_type_ids=token_type_ids,
                 visual_embeds=visual_embeds_cls,
-                visual_attention_mask=tensor['visual_attention_mask'],
-                visual_token_type_ids=tensor['visual_token_type_ids'],
+                visual_attention_mask=visual_attention_mask,
+                visual_token_type_ids=visual_token_type_ids,
                 output_hidden_states=True,
                 return_dict = True
-            )
-        print(visual_embeds_cls.shape)
+        )
+        #print(visual_embeds_cls.shape)
         #for x in outputs['hidden_states']:
             #print(x.shape)
         #print(outputs['pooler_output'].shape)
@@ -61,16 +76,16 @@ class VisualBERT(torch.nn.Module):
         #print('Tensor Shape: ',tensor['label'].shape)
         #print('Tensor View: ',tensor['label'].view(-1))
 
-        loss = self.loss_fct(reshaped_logits, tensor['label'].view(-1))
+        loss = self.loss_fct(reshaped_logits, labels.view(-1))
       
-        if pooled_output.requires_grad:
+        #if pooled_output.requires_grad:
             #perturbed_sentence = self.adv_attack(outputs['hidden_states'][0], loss)
-            perturbed = self.adv_attack(visual_embeds_cls, loss)
-            mask =(tensor['attention_mask'], tensor['visual_attention_mask'])
+            #perturbed = self.adv_attack(visual_embeds_cls, loss)
+            #mask =(tensor['attention_mask'], tensor['visual_attention_mask'])
             #print(mask.shape)
-            perturbed = (outputs['hidden_states'][0], perturbed)
-            adv_loss = self.adversarial_loss(perturbed, mask, tensor['label'])
-            pass
+            #perturbed = (outputs['hidden_states'][0], perturbed)
+            #adv_loss = self.adversarial_loss(perturbed, mask, tensor['label'])
+            #loss = loss + adv_loss
 
 
         return loss, reshaped_logits 
@@ -88,7 +103,7 @@ class VisualBERT(torch.nn.Module):
         #extended_attention_mask = (1.0 - extended_attention_mask) * -10000.0
         #ve = self.embed_cls(perturbed[:, 512:548, :])
         out = self.visualbert(inputs_embeds=perturbed[0][:, 0:512, :], attention_mask=attention_mask[0], visual_embeds=perturbed[1], visual_attention_mask=attention_mask[1])
-        print(out)
+        #print(out)
         encoded_layers_last = out['pooler_output']
         encoded_layers_last = self.dropout(encoded_layers_last)
         logits = self.cls(encoded_layers_last)

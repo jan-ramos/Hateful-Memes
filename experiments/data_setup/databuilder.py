@@ -15,10 +15,10 @@ class DatasetBuilder():
         self.parent_directory = os.getcwd()
         self.data_directory = os.path.join(self.parent_directory,'data')
         self.json_file = json_file
-        
-        self.tokenizer = BertTokenizer.from_pretrained(tokenizer)
-        self.image_processor = AutoImageProcessor.from_pretrained(model)
-        self.viz_model = Swinv2Model.from_pretrained(model)
+        print(os.getcwd())
+        self.tokenizer = BertTokenizer.from_pretrained("./tokenizer/", local_files_only=True)
+        self.image_processor = AutoImageProcessor.from_pretrained("./processor/")
+        self.viz_model = Swinv2Model.from_pretrained("./processor/", local_files_only=True)
         self.dataset = self.create_dataframe()
 
     def create_dataframe(self):
@@ -33,7 +33,7 @@ class DatasetBuilder():
     
 
     def tokenize_data(self,value):
-        input = self.tokenizer(value['text'], return_tensors='pt', padding='max_length', max_length=512, truncation=True)
+        inputs = self.tokenizer(value['text'], return_tensors='pt', padding='max_length', max_length=512, truncation=True)
         target = torch.tensor(value['label']).type(torch.int64)
         
         
@@ -48,7 +48,7 @@ class DatasetBuilder():
             
         visual_attention_mask = torch.ones(visual_embeds.shape[:-1], dtype=torch.int64)
         visual_token_type_ids = torch.ones(visual_embeds.shape[:-1], dtype=torch.int64)
-        input.update(
+        inputs.update(
             {
                 "visual_embeds": visual_embeds,
                 "visual_token_type_ids": visual_token_type_ids,
@@ -57,7 +57,7 @@ class DatasetBuilder():
             }
         )
 
-        return input
+        return inputs
     
     def get_dataset(self):
         return self.dataset
