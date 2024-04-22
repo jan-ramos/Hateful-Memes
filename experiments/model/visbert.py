@@ -5,6 +5,11 @@ from torch.autograd import grad
 from torch.nn import CrossEntropyLoss
 from transformers import BertTokenizer, VisualBertModel
 
+
+device ='cpu'# 'cuda' if torch.cuda.is_available else 'cpu'
+
+
+
 class VisualBERT(torch.nn.Module):
     def __init__(self):
         """
@@ -15,32 +20,34 @@ class VisualBERT(torch.nn.Module):
         #configuration = VisualBertConfig.from_pretrained('uclanlp/visualbert-nlvr2-coco-pre', hidden_dropout_prob=0.1, attention_probs_dropout_prob=0.1)
         #self.visualbert = VisualBertModel.from_pretrained('uclanlp/visualbert-nlvr2-coco-pre', config=configuration)
         
-        self.visualbert = VisualBertModel.from_pretrained('uclanlp/visualbert-vqa-coco-pre')
-        self.embed_cls = nn.Linear(1024,2048)
+        self.visualbert = VisualBertModel.from_pretrained('uclanlp/visualbert-nlvr2-coco-pre').to(device)
+
+
+        self.visualbert = self.visualbert.double()
+        self.embed_cls = nn.Linear(1024,1024,dtype=torch.float64)
         self.num_labels = 2
         self.dropout = nn.Dropout(0.3)
-        self.cls=  nn.Linear(768, self.num_labels)
+        self.cls=  nn.Linear(768, self.num_labels,dtype=torch.float64)
         class_weights = [0.77510622, 1.40873991]
         # self.visualbert = VisualBertModel.from_pretrained('uclanlp/visualbert-nlvr2-coco-pre')
         
-        self.weight = torch.FloatTensor([class_weights]) #torch.FloatTensor([0.77510622, 1.40873991]),
+        self.weight = torch.DoubleTensor([class_weights]) #torch.FloatTensor([0.77510622, 1.40873991]),
         nSamples = [5178, 2849]
         normedWeights = [1 - (x / sum(nSamples)) for x in nSamples]
-        self.loss_fct = CrossEntropyLoss(weight=torch.FloatTensor(normedWeights))
-        
+        self.loss_fct = CrossEntropyLoss(weight=torch.DoubleTensor(normedWeights))
     #def forward(self, tensor):
     def forward(self, input_ids, attention_mask, token_type_ids, visual_embeds, visual_attention_mask, visual_token_type_ids, labels):
         input_ids = input_ids.squeeze(1)
-        print(input_ids.size())
-        print(token_type_ids.size())
+        #print(input_ids.size())
+        #print(token_type_ids.size())
         """
         In the forward function we accept a Tensor of input data and we must return
         a Tensor of output data. We can use Modules defined in the constructor as
         well as arbitrary operators on Tensors.
         """
         #print(tensor['visual_embeds'].shape)
-        visual_embeds_cls = self.embed_cls(visual_embeds)
-        visual_embeds_cls = visual_embeds_cls.squeeze(1)
+        visual_embeds_cls = self.embed_cls(visual_embeds)#visual_embeds#self.embed_cls(visual_embeds)
+        visual_embeds_cls = visual_embeds_cls
         #outputs = self.visualbert(
         #        input_ids=tensor['input_ids'],
         #        attention_mask=tensor['attention_mask'],
@@ -51,13 +58,45 @@ class VisualBERT(torch.nn.Module):
         #        output_hidden_states=True,
         #        return_dict = True
         #    )
-        print(visual_embeds_cls.size())
-        outputs = self.visualbert(input_ids=input_ids,
-                attention_mask=attention_mask,
-                token_type_ids=token_type_ids,
+        #print('Example')
+
+
+        #print('/n Dimension Sizes:')
+        #print('Input: ',len(input_ids))
+        #print('Token Type: ',len(token_type_ids))
+        #print('Visual Embed', len(visual_embeds))
+        #print(visual_embeds_cls.size())
+
+
+        #print('input_ids: ',input_ids.dtype)
+        #print('attention_mask: ',attention_mask.dtype)
+        #print('token_type_ids: ',token_type_ids.dtype)
+        #print('visual_embeds_cls: ',visual_embeds_cls.dtype)
+        #print('visual_attention_mask: ',visual_attention_mask.dtype)
+        #print('visual_token_type_ids: ',visual_token_type_ids.dtype)
+
+
+
+        #input_ids = input_ids.to(torch.double)
+        #attention_mask = attention_mask.to(torch.double)
+        #token_type_ids = token_type_ids.to(torch.double)
+        visual_embeds_cls = visual_embeds_cls.to(torch.double)
+        visual_attention_mask = visual_attention_mask.to(torch.double)
+        visual_token_type_ids = visual_token_type_ids.to(torch.double)
+
+        #print('\n\n\n\ninput_ids: ',input_ids.dtype)
+        #print('attention_mask: ',attention_mask.dtype)
+        #print('token_type_ids: ',token_type_ids.dtype)
+        #print('visual_embeds_cls: ',visual_embeds_cls.dtype)
+        #print('visual_attention_mask: ',visual_attention_mask.dtype)
+        #print('visual_token_type_ids: ',visual_token_type_ids.dtype)
+
+        outputs = self.visualbert(input_ids=input_ids.squeeze(),
+                attention_mask=attention_mask.squeeze(),
+                token_type_ids=token_type_ids.squeeze(),
                 visual_embeds=visual_embeds_cls,
-                visual_attention_mask=visual_attention_mask,
-                visual_token_type_ids=visual_token_type_ids,
+                visual_attention_mask=visual_attention_mask.long(),
+                visual_token_type_ids=visual_token_type_ids.long(),
                 output_hidden_states=True,
                 return_dict = True
         )

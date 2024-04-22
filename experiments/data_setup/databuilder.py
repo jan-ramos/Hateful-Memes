@@ -8,17 +8,19 @@ import jsonlines
 from PIL import Image
 import numpy as np
 
+device = 'cuda' if torch.cuda.is_available else 'cpu'
+print(device)
 
 class DatasetBuilder():
     def __init__(self,model = None,tokenizer = None,json_file = None):
-        print(tokenizer)
+        #print(tokenizer)
         self.parent_directory = os.getcwd()
         self.data_directory = os.path.join(self.parent_directory,'data')
         self.json_file = json_file
-        print(os.getcwd())
+        #print(os.getcwd())
         self.tokenizer = BertTokenizer.from_pretrained("./tokenizer/", local_files_only=True)
-        self.image_processor = AutoImageProcessor.from_pretrained("./processor/")
-        self.viz_model = Swinv2Model.from_pretrained("./processor/", local_files_only=True)
+        self.image_processor = AutoImageProcessor.from_pretrained(model)
+        self.viz_model = Swinv2Model.from_pretrained(model).to(device)
         self.dataset = self.create_dataframe()
 
     def create_dataframe(self):
@@ -33,7 +35,7 @@ class DatasetBuilder():
     
 
     def tokenize_data(self,value):
-        inputs = self.tokenizer(value['text'], return_tensors='pt', padding='max_length', max_length=512, truncation=True)
+        inputs = self.tokenizer(value['text'], return_tensors='pt', padding='max_length', max_length=36, truncation=True)
         target = torch.tensor(value['label']).type(torch.int64)
         
         
@@ -43,17 +45,17 @@ class DatasetBuilder():
             outputs = self.viz_model(**image)
             visual_embeds = outputs.last_hidden_state
         except:
-            visual_embeds = np.zeros(shape=(197, 768), dtype=float)
+            visual_embeds = np.zeros(shape=(36, 1024), dtype=float)
 
             
-        visual_attention_mask = torch.ones(visual_embeds.shape[:-1], dtype=torch.int64)
-        visual_token_type_ids = torch.ones(visual_embeds.shape[:-1], dtype=torch.int64)
+        visual_attention_mask = torch.ones(visual_embeds.shape[:-1], dtype=torch.double)
+        visual_token_type_ids = torch.ones(visual_embeds.shape[:-1], dtype=torch.double)
         inputs.update(
             {
-                "visual_embeds": visual_embeds,
-                "visual_token_type_ids": visual_token_type_ids,
-                "visual_attention_mask": visual_attention_mask,
-                "label":target
+                "visual_embeds": visual_embeds.squeeze(),
+                "visual_token_type_ids": visual_token_type_ids.squeeze(),
+                "visual_attention_mask": visual_attention_mask.squeeze(),
+                "label":target.to(device)
             }
         )
 
@@ -65,8 +67,8 @@ class DatasetBuilder():
     def __getitem__(self, index):
         inputs = self.tokenize_data(self.dataset.loc[index])
         
-        for k in inputs.keys():
-            print(k, inputs[k].shape, inputs[k].dtype)
+        #for k in inputs.keys():
+            #print(k, inputs[k].shape, inputs[k].dtype)
 
         return inputs
 
@@ -74,6 +76,6 @@ class DatasetBuilder():
         return len(self.dataset)
 
     def load_image(self,filepath):
-        image = Image.open(filepath)
+        image = Image.open(filepath).convert('RGB')
         image_array = np.array(image)
         return image_array
