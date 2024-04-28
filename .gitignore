@@ -10,8 +10,17 @@ AdVisualBERT.py
 /mmf/
 /processor/
 
+/experiments/*-checkpoint/
+/experiments/*-check/
+experiments/test/
+experiments/*.csv
+experiments/*.py
+experiments/.~lock.*
+experiments/VisualBERT_*
 
+experiments/old.ipynb
 
+data/*.jsonl
 __pycache__
 
 *.png
